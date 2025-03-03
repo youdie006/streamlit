@@ -10,10 +10,10 @@ from difflib import get_close_matches
 # 설정 및 CSV 로딩
 # ---------------------------
 OCR_MODEL = "gpt-4o"         # 이미지 → 텍스트(OCR) 모델
-TRANSFORM_MODEL = "o3-mini"   # 문제 변형 및 검증 모델
+TRANSFORM_MODEL = "gpt-4o"   # 문제 변형 및 검증 모델
 
 # OpenAI API 키 (실제 키로 교체)
-openai.api_key = "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"
+openai.api_key = "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"
 
 @st.cache_data
 def load_csv_files():
