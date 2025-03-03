@@ -13,7 +13,7 @@ OCR_MODEL = "gpt-4o"         # 이미지 → 텍스트(OCR) 모델
 TRANSFORM_MODEL = "o3-mini"   # 문제 변형 및 검증 모델
 
 # OpenAI API 키 (실제 키로 교체)
-openai.api_key = "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"
+openai.api_key = "YOUR_OPENAI_API_KEY_HERE"
 
 @st.cache_data
 def load_csv_files():
@@ -163,7 +163,7 @@ def transform_problem_text(original_problem_text, original_solution_text, n_prob
 사용자 요구 난이도: {user_difficulty}
 {data3_difficulty_info}
 
-선택된 태그의 핵심 개념 (원본 문제에 사용된): {selected_concepts}
+선택된 태그의 핵심 개념 (원본 문제에서 사용됨): {selected_concepts}
 변형 문제에서도 반드시 이 핵심 개념을 반영해야 합니다.
 
 추가 지시사항:
@@ -299,10 +299,14 @@ else:
     selected_tag = selected_option.split(" / ")[0]
     selected_concepts = selected_option.split(" / ")[1]
 
-# 인덱스 범위: 최소값은 1, 최대값은 해당 태그의 index 목록에서 선택
+# 인덱스 범위: 최소값은 1, 최대값은 선택 옵션
 st.sidebar.subheader("인덱스 범위 선택")
-if selected_tag != "none":
-    available_indices = sorted(df_data1[df_data1["tag"] == selected_tag]["index"].unique())
+index_option = st.sidebar.radio("최대 인덱스 선택 옵션", ("선택된 태그의 최대 인덱스", "전체 데이터의 최대 인덱스"))
+if index_option == "선택된 태그의 최대 인덱스":
+    if selected_tag != "none":
+        available_indices = sorted(df_data1[df_data1["tag"] == selected_tag]["index"].unique())
+    else:
+        available_indices = sorted(df_data1["index"].unique())
 else:
     available_indices = sorted(df_data1["index"].unique())
 index_max = st.sidebar.selectbox("최대 인덱스 선택", available_indices, index=len(available_indices)-1)
