@@ -164,6 +164,7 @@ def transform_problem_text(original_problem_text, original_solution_text, n_prob
 {data3_difficulty_info}
 
 선택된 태그의 핵심 개념 (원본 문제에서 사용됨): {selected_concepts}
+※ 이 내용은 해당 tag의 "contents" 컬럼에 해당하는 실제 핵심개념입니다. (concepts는 이름일 뿐입니다.)
 변형 문제에서도 반드시 이 핵심 개념을 반영해야 합니다.
 
 추가 지시사항:
@@ -277,14 +278,16 @@ n_problems = st.sidebar.number_input("생성할 문제 수", min_value=1, step=1
 user_instructions = st.sidebar.text_area("문제 변형 시 추가 지시사항 (없으면 비워두세요)", "")
 user_difficulty = st.sidebar.select_slider("문제 난이도 (0~5)", options=list(range(6)), value=3)
 
-# 태그 검색 및 추천
+# 태그 검색 및 추천 (concepts 대신 contents 사용)
 st.sidebar.subheader("태그 검색")
 user_tag_search = st.sidebar.text_input("검색어 입력", "")
-tag_options = df_data1.apply(lambda row: f"{row['tag']} / {row['concepts']}", axis=1).tolist()
+# 이제 tag 옵션은 "tag / contents" 형태로 제공됨
+tag_options = df_data1.apply(lambda row: f"{row['tag']} / {row['contents']}", axis=1).tolist()
 if user_tag_search:
-    matches = get_close_matches(user_tag_search, df_data1["tag"].tolist(), n=5, cutoff=0.3)
-    if matches:
-        recommended_options = [f"{tag} / {df_data1.loc[df_data1['tag']==tag, 'concepts'].iloc[0]}" for tag in matches]
+    # 검색어를 concepts와 contents 모두에서 검색할 수 있도록 하려면, 아래와 같이 할 수 있음
+    filtered_df = df_data1[df_data1["contents"].str.contains(user_tag_search, case=False, na=False)]
+    if not filtered_df.empty:
+        recommended_options = filtered_df.apply(lambda row: f"{row['tag']} / {row['contents']}", axis=1).tolist()
         st.sidebar.write("추천 태그:")
         selected_option = st.sidebar.selectbox("추천 태그 선택", recommended_options)
         selected_tag = selected_option.split(" / ")[0]
@@ -368,7 +371,7 @@ if st.button("문제 변형 생성"):
     else:
         st.warning("검증을 통과한 문제 없음.")
     
-    # CSV 저장: 파일명은 "실행일자_[선택된 tag]_[tag에 해당하는 concepts].csv"
+    # CSV 저장: 파일명은 "실행일자_[선택된 tag]_[tag에 해당하는 contents].csv"
     if selected_tag != "none" and verified_problems:
         try:
             row = df_data1.loc[df_data1["tag"] == selected_tag].iloc[0]
