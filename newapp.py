@@ -97,7 +97,7 @@ def ocr_with_gpt4o_mini(image_url):
         return ""
 
 def transform_problem_text(original_problem_text, original_solution_text, n_problems,
-                           index_min, index_max, target_tag, user_difficulty, user_instructions="", selected_contents=""):
+                           index_min, index_max, target_tag, user_difficulty, user_instructions="", selected_concepts=""):
     if target_tag != "none" and target_tag not in df_data1["tag"].values:
         st.error(f"잘못된 tag: {target_tag} (data1에 존재하지 않음)")
         return ""
@@ -127,6 +127,7 @@ def transform_problem_text(original_problem_text, original_solution_text, n_prob
     if df_data3 is not None and target_tag != "none":
         data3_rows = df_data3[df_data3["tag"] == target_tag]
         if not data3_rows.empty:
+            # 난이도 분석: 숫자형으로 변환 후 평균, 최소, 최대 계산
             difficulties = pd.to_numeric(data3_rows["difficulty"], errors='coerce').dropna()
             if not difficulties.empty:
                 avg_diff = difficulties.mean()
@@ -162,7 +163,7 @@ def transform_problem_text(original_problem_text, original_solution_text, n_prob
 사용자 요구 난이도: {user_difficulty}
 {data3_difficulty_info}
 
-선택된 태그의 핵심 개념 (원본 문제에서 사용됨): {selected_contents}
+선택된 태그의 핵심 개념 (원본 문제에서 사용됨): {selected_concepts}
 ※ 이 내용은 해당 tag의 "contents" 컬럼의 실제 핵심개념입니다.
 변형 문제에서도 반드시 이 핵심 개념을 반영해야 합니다.
 
@@ -277,10 +278,10 @@ n_problems = st.sidebar.number_input("생성할 문제 수", min_value=1, step=1
 user_instructions = st.sidebar.text_area("문제 변형 시 추가 지시사항 (없으면 비워두세요)", "")
 user_difficulty = st.sidebar.select_slider("문제 난이도 (0~5)", options=list(range(6)), value=3)
 
-# 태그 검색 및 추천 (표시에는 concepts, 프롬프트에는 contents 사용)
+# 태그 검색 및 추천 (표시에는 concepts, 실제 프롬프트에는 contents 사용)
 st.sidebar.subheader("태그 검색")
 user_tag_search = st.sidebar.text_input("검색어 입력", "")
-# tag 옵션은 "tag / concepts" 형태로 표시
+# tag 옵션은 "tag / concepts" 형태로 표시 (여기서 concepts는 UI 표시용)
 tag_options = df_data1.apply(lambda row: f"{row['tag']} / {row['concepts']}", axis=1).tolist()
 if user_tag_search:
     filtered_df = df_data1[df_data1["concepts"].str.contains(user_tag_search, case=False, na=False)]
@@ -295,12 +296,12 @@ else:
     selected_option = st.sidebar.selectbox("태그와 개념 선택", tag_options)
 
 selected_tag = selected_option.split(" / ")[0]
-# UI에 표시되는 concepts 값 (이것은 참고용)
+# UI 표시용 concepts (사용자에게 보여줄 내용)
 display_concepts = selected_option.split(" / ")[1]
-# 실제 프롬프트에 사용할 핵심 개념은 해당 tag의 "contents" 컬럼에서 가져옴.
+# 실제 프롬프트에 사용할 핵심개념은 해당 tag의 "contents" 컬럼에서 가져옴.
 actual_contents = df_data1.loc[df_data1["tag"] == selected_tag, "contents"].iloc[0]
 
-# 인덱스 범위: 최소값은 1, 최대값은 선택 옵션 (라디오 버튼 선택)
+# 인덱스 범위: 최소값은 1, 최대값은 선택 옵션
 st.sidebar.subheader("인덱스 범위 선택")
 index_option = st.sidebar.radio("최대 인덱스 선택 옵션", ("선택된 태그의 최대 인덱스", "전체 데이터의 최대 인덱스"))
 if index_option == "선택된 태그의 최대 인덱스":
